@@ -57,33 +57,50 @@ sets, training windows closed before the cutoff, non-overlapping test windows.
 
 ## Results
 
-### First analysis (single temporal split)
+Three forecast origins on 74,203 new articles: training sets of 21,000 to 44,000 articles and test
+windows of 11,000 to 15,000 articles. Lower WAPE is better.
 
-Test: products first launched from 2020-01-14 (14,868 articles; 48,993 articles to fit and 8,681
-for validation). Lower WAPE is better.
+| Origin | Cutoff | Fit | Validation | Test |
+|---|---|---|---|---|
+| 0 | 2019-04-16 | 20,935 | 3,714 | 11,085 |
+| 1 | 2019-08-15 | 31,633 | 5,697 | 11,209 |
+| 2 | 2020-01-14 | 43,694 | 7,713 | 14,868 |
 
-| Model | WAPE | Bias |
+Pooled test metrics, with 95% intervals from a bootstrap over products:
+
+| Model | WAPE [95% CI] | Bias [95% CI] |
 |---|---|---|
-| Baseline (type median) | 0.881 | -0.764 |
-| LightGBM, tabular | 0.655 | -0.308 |
-| LightGBM, tabular + image | 0.650 | -0.309 |
-| PyTorch MLP, tabular | 0.718 | -0.362 |
-| PyTorch MLP, tabular + image | 0.692 | -0.253 |
+| Baseline (type median) | 0.892 [0.889, 0.896] | -0.798 [-0.804, -0.791] |
+| kNN on image embeddings | 0.833 [0.827, 0.839] | -0.543 [-0.557, -0.528] |
+| LightGBM, tabular | 0.710 [0.703, 0.717] | -0.471 [-0.484, -0.458] |
+| LightGBM, tabular + image | 0.711 [0.704, 0.717] | -0.479 [-0.492, -0.466] |
+| PyTorch MLP, tabular | 0.775 [0.768, 0.783] | -0.486 [-0.501, -0.470] |
+| PyTorch MLP, tabular + image | 0.743 [0.735, 0.750] | -0.471 [-0.485, -0.457] |
 
-What this shows, with the caveat that it is one split without intervals:
+![Pooled test WAPE](results/wape_pooled.png)
 
-- Product attributes carry most of the signal: LightGBM cuts WAPE from 0.88 to 0.66.
-- Image embeddings add little on top of the attributes for LightGBM (0.650 against 0.655) and a
-  little more for the MLP (0.692 against 0.718). Neither difference is tested here.
-- LightGBM beats the MLP in both variants.
-- Every model under-predicts total volume (negative bias). This is expected from an L1 objective,
-  which targets the median of a very right-skewed distribution.
+Paired differences in WAPE (negative: the first model is better):
 
-### Rolling-origin evaluation with confidence intervals
+| Comparison | Difference [95% CI] | CI excludes 0 |
+|---|---|---|
+| LightGBM, tabular vs baseline | -0.183 [-0.188, -0.177] | yes |
+| kNN on image embeddings vs baseline | -0.059 [-0.065, -0.053] | yes |
+| LightGBM, tabular + image vs tabular | +0.001 [-0.001, +0.002] | no |
+| MLP, tabular + image vs tabular | -0.033 [-0.040, -0.026] | yes |
+| LightGBM + image vs MLP + image | -0.032 [-0.039, -0.026] | yes |
 
-<!-- RESULTS:START -->
-Run `python -m coldstart.run` and paste `results/results.md` here.
-<!-- RESULTS:END -->
+What this shows:
+
+- **Product attributes carry most of the signal.** LightGBM lowers WAPE from 0.892 to 0.710.
+- **Pictures contain demand-relevant information, but the attributes already capture it.** The
+  visual kNN, which sees no attribute, beats the type median by 0.059. Yet adding the image
+  embedding to LightGBM changes nothing (+0.001, interval around zero).
+- **The image helps the neural network, which still trails LightGBM.** The MLP gains 0.033 from
+  the image, and ends 0.032 behind the best LightGBM.
+- **Every model under-predicts total volume** (bias between -0.47 and -0.80), as expected from an
+  L1 objective that targets the median of a very right-skewed target.
+
+Per-origin figures are in `results/metrics_by_origin.csv`.
 
 ## Limitations
 
@@ -94,7 +111,8 @@ Run `python -m coldstart.run` and paste `results/results.md` here.
   feature from the product description.
 - An L1 objective predicts the median and under-predicts totals. For volume planning, a
   mean-targeting loss (Poisson or Tweedie) or quantile predictions would be worth testing.
-- One retailer and one two-year window.
+- One retailer, one two-year window and one random seed per model: the gaps between the MLP
+  variants could move with other seeds.
 
 ## Reproduce
 

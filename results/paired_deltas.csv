@@ -1,0 +1,6 @@
+comparison,delta_wape,delta_lo,delta_hi
+"LightGBM, tabular  vs  Baseline (type median)",-0.182558445014466,-0.18845054044354465,-0.17702521894728018
+kNN on image embeddings  vs  Baseline (type median),-0.05930392069761524,-0.06513159387786462,-0.053110562375792016
+"LightGBM, tabular + image  vs  LightGBM, tabular",0.0006348731262993584,-0.0005932096495859431,0.001881970301559449
+"PyTorch MLP, tabular + image  vs  PyTorch MLP, tabular",-0.03270421201672455,-0.039743844315052915,-0.025873450774810364
+"LightGBM, tabular + image  vs  PyTorch MLP, tabular + image",-0.03205641820803798,-0.03857335109854507,-0.02600073386455682
