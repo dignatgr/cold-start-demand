@@ -1,0 +1,28 @@
+# Data and caches (never commit the Kaggle data or embeddings)
+data/
+cache/
+*.npy
+*.parquet
+results_demo/
+results/predictions.csv.gz
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+build/
+dist/
+
+# Tools
+.pytest_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+.vscode/
+.idea/
