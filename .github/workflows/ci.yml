@@ -16,7 +16,7 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           cache: pip
-      - name: Install (without PyTorch: the MLP and embedding tests are skipped)
+      - name: Install (without PyTorch, so the MLP and embedding tests are skipped)
         run: pip install -e ".[dev]"
       - name: Lint
         run: |
