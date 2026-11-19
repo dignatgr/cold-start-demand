@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import numpy as np
 import pandas as pd
-from sklearn.decomposition import PCA
+from sklearn.decomposition import PCA, TruncatedSVD
+from sklearn.feature_extraction.text import TfidfVectorizer
 
-from coldstart.config import CAT_COLS, NUM_COLS
+from coldstart.config import ASSORT_COLS, CAT_COLS, NUM_COLS
 
 
 def tabular_features(df: pd.DataFrame) -> pd.DataFrame:
@@ -36,3 +37,21 @@ def align_embeddings(
     pos = pd.Index(article_ids).get_indexer(df["article_id"])
     ok = pos >= 0
     return df[ok].reset_index(drop=True), emb[pos[ok]]
+
+
+def assortment_features(df: pd.DataFrame) -> pd.DataFrame:
+    """Assortment features (see ``data._add_assortment_features``), re-indexed from zero."""
+    return df[list(ASSORT_COLS)].reset_index(drop=True)
+
+
+def text_features(
+    df: pd.DataFrame, train_mask: np.ndarray, n_components: int = 16, seed: int = 0
+) -> pd.DataFrame:
+    """TF-IDF of the product description reduced by an SVD, both fitted on training rows only."""
+    text = df["detail_desc"].fillna("").astype(str).reset_index(drop=True)
+    train_text = text[np.asarray(train_mask)]
+    tfidf = TfidfVectorizer(min_df=5, ngram_range=(1, 2), max_features=20000, sublinear_tf=True)
+    svd = TruncatedSVD(n_components=n_components, random_state=seed)
+    svd.fit(tfidf.fit_transform(train_text))
+    components = svd.transform(tfidf.transform(text))
+    return pd.DataFrame(components, columns=[f"txt_{i}" for i in range(n_components)])

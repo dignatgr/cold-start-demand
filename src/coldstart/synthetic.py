@@ -21,6 +21,8 @@ def make_synthetic(
     n_types = 8
     type_scale = rng.lognormal(2.3, 0.6, n_types)
     centroids = rng.normal(size=(n_types, emb_dim))
+    type_words = [[f"w{t}_{j}" for j in range(4)] for t in range(n_types)]
+    common_words = [f"c{j}" for j in range(6)]
     start = pd.Timestamp("2018-09-20")
 
     tx_rows, art_rows, ids, embs = [], [], [], []
@@ -46,6 +48,8 @@ def make_synthetic(
             for i, col in enumerate(CAT_COLS):
                 art[col] = f"{col}_{(t * (i + 1) + v * (i % 2)) % (n_types + i)}"
             art["product_type_name"] = f"type_{t}"
+            words = [*rng.choice(type_words[t], 3), *rng.choice(common_words, 3)]
+            art["detail_desc"] = " ".join(words)
             art_rows.append(art)
             ids.append(article_id)
             embs.append(centroids[t] + rng.normal(scale=0.5, size=emb_dim))

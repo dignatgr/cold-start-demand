@@ -9,6 +9,7 @@ def _articles(ids_and_codes):
     for article_id, code in ids_and_codes:
         row = {"article_id": article_id, "product_code": code}
         row.update({c: f"{c}_a" for c in CAT_COLS})
+        row["detail_desc"] = "a description"
         rows.append(row)
     return pd.DataFrame(rows)
 
@@ -47,3 +48,39 @@ def test_censoring_and_first_month_units():
     # colour variants share the product launch date, which is the earliest one
     assert (df["group_launch"] == day(20)).all()
     assert df.set_index("article_id").loc[2, "price"] > 0.02  # mean of 0.02, 0.02, 0.04
+
+
+def test_assortment_features_use_no_sales_information():
+    start = pd.Timestamp("2020-01-01")
+
+    def day(n):
+        return start + pd.Timedelta(days=n)
+
+    tx = pd.DataFrame(
+        [
+            (day(0), 1, 0.01),  # old article: defines the start of the data
+            (day(150), 1, 0.01),  # end of the data
+            # product 20: two variants launched the same week, a third one much later
+            (day(20), 2, 0.02),
+            (day(22), 6, 0.04),
+            (day(90), 4, 0.05),
+            # product 70 launched the same week as product 20
+            (day(23), 7, 0.03),
+            # product 30 launched on day 140: too recent for a full first month
+            (day(140), 3, 0.03),
+        ],
+        columns=["t_dat", "article_id", "price"],
+    )
+    articles = _articles([(1, 10), (2, 20), (3, 30), (4, 20), (6, 20), (7, 70)])
+    df = build_new_product_dataset(tx, articles, Config()).set_index("article_id")
+
+    assert set(df.index) == {2, 4, 6, 7}  # article 3 is too recent, article 1 censored
+    # the variant launched on day 90 is not counted as part of the launch
+    assert (df.loc[[2, 6, 4], "n_variants_week1"] == 2).all()
+    assert df.loc[7, "n_variants_week1"] == 1
+    # two distinct products (20 and 70) were launched that week
+    assert (df.loc[[2, 6, 7], "n_launch_week"] == 2).all()
+    assert df.loc[4, "n_launch_week"] == 1
+    # the column set is the documented one and has no missing value
+    for col in ["price_rel_type", "month_sin", "month_cos", "n_launch_week_section"]:
+        assert df[col].notna().all()

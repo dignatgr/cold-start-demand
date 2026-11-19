@@ -14,8 +14,11 @@ from coldstart.config import (  # noqa: E402
     BASELINE,
     DEFAULT_CONFIG,
     KNN,
+    LGB_ASSORT,
     LGB_IMG,
+    LGB_NN,
     LGB_TAB,
+    LGB_TEXT,
     MLP_IMG,
     MLP_TAB,
     Config,
@@ -29,6 +32,10 @@ PAIRS = [
     (LGB_IMG, LGB_TAB),
     (MLP_IMG, MLP_TAB),
     (LGB_IMG, MLP_IMG),
+    (LGB_ASSORT, LGB_TAB),
+    (LGB_TEXT, LGB_ASSORT),
+    (LGB_NN, LGB_TEXT),
+    (LGB_NN, LGB_TAB),
 ]
 
 

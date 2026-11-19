@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from coldstart.config import BASELINE, KNN, LGB_IMG, LGB_TAB
+from coldstart.config import BASELINE, KNN, LGB_ASSORT, LGB_IMG, LGB_NN, LGB_TAB, LGB_TEXT
 from coldstart.evaluate import metrics_by_origin, paired_deltas, pooled_metrics
 from coldstart.experiment import run_experiment
 from coldstart.run import main
@@ -18,6 +18,7 @@ def test_every_model_predicts_the_same_articles(preds):
         sets = [set(m["article_id"]) for _, m in g.groupby("model")]
         assert all(s == sets[0] for s in sets)
     assert {BASELINE, KNN, LGB_TAB, LGB_IMG} <= set(preds["model"])
+    assert {LGB_ASSORT, LGB_TEXT, LGB_NN} <= set(preds["model"])
     assert np.isfinite(preds["pred"]).all()
 
 
