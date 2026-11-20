@@ -7,7 +7,8 @@ products are a poor guide because trends change. How many units will it sell in 
 weeks, given its attributes and its picture?
 
 This repository compares a type-median baseline, a visual nearest-neighbour baseline, gradient
-boosting and a small neural network on the public H&M data, with an evaluation designed to avoid
+boosting (with assortment, text and visual-neighbour features) and a small neural network on the
+public H&M data, with an evaluation designed to avoid
 the usual leaks: split by product launch date, embargo, colour variants kept together, and
 confidence intervals that resample whole products.
 
@@ -32,6 +33,9 @@ first four weeks are not fully observed.
 | kNN | Median units of the 10 visually closest training articles (cosine distance on ResNet50 embeddings) |
 | LightGBM, tabular | 9 categorical attributes, price, launch month and week; L1 objective |
 | LightGBM, tabular + image | Same, plus a 32-component PCA of the image embedding |
+| LightGBM, + assortment | Tabular, plus launch-context features: variants in week 1, price relative to the type, launches that week (all and same section), month sine/cosine |
+| LightGBM, + assortment + text | Same, plus a 16-component SVD of TF-IDF on the product description |
+| LightGBM, + all + visual neighbours | Same, plus target features from the visually closest training articles (median, mean log, distance), computed leave-product-out |
 | PyTorch MLP, tabular | Learned embeddings for the categories plus numeric features; L1 loss on `log1p(units)` |
 | PyTorch MLP, tabular + image | Same, plus a dropout + linear branch on the image embedding |
 
@@ -74,6 +78,9 @@ Pooled test metrics, with 95% intervals from a bootstrap over products:
 | kNN on image embeddings | 0.833 [0.827, 0.839] | -0.543 [-0.557, -0.528] |
 | LightGBM, tabular | 0.710 [0.703, 0.717] | -0.471 [-0.484, -0.458] |
 | LightGBM, tabular + image | 0.711 [0.704, 0.717] | -0.479 [-0.492, -0.466] |
+| LightGBM, + assortment | 0.693 [0.687, 0.700] | -0.429 [-0.442, -0.415] |
+| LightGBM, + assortment + text | 0.696 [0.689, 0.702] | -0.437 [-0.450, -0.423] |
+| LightGBM, + assortment + text + visual neighbours | 0.693 [0.686, 0.699] | -0.426 [-0.439, -0.412] |
 | PyTorch MLP, tabular | 0.775 [0.768, 0.783] | -0.486 [-0.501, -0.470] |
 | PyTorch MLP, tabular + image | 0.743 [0.735, 0.750] | -0.471 [-0.485, -0.457] |
 
@@ -88,6 +95,10 @@ Paired differences in WAPE (negative: the first model is better):
 | LightGBM, tabular + image vs tabular | +0.001 [-0.001, +0.002] | no |
 | MLP, tabular + image vs tabular | -0.033 [-0.040, -0.026] | yes |
 | LightGBM + image vs MLP + image | -0.032 [-0.039, -0.026] | yes |
+| LightGBM, + assortment vs tabular | -0.017 [-0.019, -0.015] | yes |
+| + text vs + assortment | +0.003 [+0.001, +0.004] | yes (worse) |
+| + visual neighbours vs + text | -0.003 [-0.005, -0.001] | yes |
+| + assortment + text + visual neighbours vs tabular | -0.017 [-0.020, -0.014] | yes |
 
 What this shows:
 
@@ -97,7 +108,14 @@ What this shows:
   embedding to LightGBM changes nothing (+0.001, interval around zero).
 - **The image helps the neural network, which still trails LightGBM.** The MLP gains 0.033 from
   the image, and ends 0.032 behind the best LightGBM.
-- **Every model under-predicts total volume** (bias between -0.47 and -0.80), as expected from an
+- **Launch context is the one feature group that clearly helps.** Assortment features lower WAPE
+  by 0.017 (0.710 to 0.693) and reduce the bias from -0.471 to -0.429: how many articles launch
+  the same week, and the price relative to the type, matter.
+- **Text and visual neighbours add almost nothing.** The description makes the model slightly worse
+  (+0.003), since the attributes already encode what it says. Visual-neighbour target features
+  recover 0.003, which is statistically detectable but practically negligible. The final model is
+  only 2.4% better than the tabular one, essentially thanks to assortment.
+- **Every model under-predicts total volume** (bias between -0.43 and -0.80), as expected from an
   L1 objective that targets the median of a very right-skewed target.
 
 Per-origin figures are in `results/metrics_by_origin.csv`.
@@ -107,8 +125,8 @@ Per-origin figures are in `results/metrics_by_origin.csv`.
 - Only articles with at least one sale are observed, so the model predicts sales *given* that the
   article sold.
 - Price is the observed average price, not a planned price; there is no price-elasticity model.
-- Image embeddings are generic ImageNet features, not fashion-specific, and there is no text
-  feature from the product description.
+- Image embeddings are generic ImageNet features, not fashion-specific, and text is a
+  bag-of-words summary (TF-IDF + SVD), not a language model.
 - An L1 objective predicts the median and under-predicts totals. For volume planning, a
   mean-targeting loss (Poisson or Tweedie) or quantile predictions would be worth testing.
 - One retailer, one two-year window and one random seed per model: the gaps between the MLP
