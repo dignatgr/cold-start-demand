@@ -4,3 +4,7 @@ kNN on image embeddings  vs  Baseline (type median),-0.05930392069761524,-0.0651
 "LightGBM, tabular + image  vs  LightGBM, tabular",0.0006348731262993584,-0.0005932096495859431,0.001881970301559449
 "PyTorch MLP, tabular + image  vs  PyTorch MLP, tabular",-0.03270421201672455,-0.039743844315052915,-0.025873450774810364
 "LightGBM, tabular + image  vs  PyTorch MLP, tabular + image",-0.03205641820803798,-0.03857335109854507,-0.02600073386455682
+"LightGBM, + assortment  vs  LightGBM, tabular",-0.016702685783913655,-0.018658781510537747,-0.01463988157084717
+"LightGBM, + assortment + text  vs  LightGBM, + assortment",0.00257371410519822,0.0013441366954027388,0.00385443612763987
+"LightGBM, + assortment + text + visual neighbours  vs  LightGBM, + assortment + text",-0.003229094236708018,-0.00545456880973458,-0.0009918398470740144
+"LightGBM, + assortment + text + visual neighbours  vs  LightGBM, tabular",-0.01735806591542345,-0.02037287565276979,-0.013965641714506424
